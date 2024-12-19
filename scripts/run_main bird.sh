@@ -23,6 +23,7 @@ generation_few_shot_schema_existance=False
 db_sample_limit=10
 relevant_description_number=20
 seed=42
+type="bird"
 
 # 使用shift命令跳过已经处理过的参数
 # 将所有参数左移一个位置，也就是将$2的值赋给$1，$3的值赋给$2，以此类推。这样，$1的值就被丢弃了，而$0的值（脚本名）不会改变。
@@ -47,6 +48,7 @@ while [ "$#" -gt 0 ]; do
         --db_sample_limit) db_sample_limit="$2"; shirt ;;
         --relevant_description_number) relevant_description_number="$2"; shirt ;;
         --seed) seed="$2"; shift ;;
+        --type) type="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -71,4 +73,5 @@ python main.py \
     --generation_few_shot_schema_existance "$generation_few_shot_schema_existance" \
     --db_sample_limit "$db_sample_limit" \
     --relevant_description_number "$relevant_description_number" \
-    --seed "$seed"
+    --seed "$seed" \
+    --type "$type"
