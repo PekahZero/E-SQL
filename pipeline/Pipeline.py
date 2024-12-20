@@ -4,6 +4,7 @@ from utils.prompt_utils import *
 from utils.db_utils import *
 from utils.openai_utils import create_response
 from typing import Dict, List
+from time import sleep
 
 
 class Pipeline:
@@ -39,6 +40,31 @@ class Pipeline:
 
         self.seed = args.seed
         self.type = args.type
+
+    def retry_response(self, stage: str, prompt: str, times: int) -> Dict:
+        """
+        The function retries the response object creation for a given stage.
+
+        Arguments:
+            stage (str): stage name
+            prompt (str): prompt for the stage
+        Returns:
+            response_object (Dict): Response object returned by the LLM
+        """
+        cnt = 1
+        while response_object is None and cnt <= times:
+            sleep(60)  # 等待1min 之后重试
+            response_object = create_response(
+                stage=stage,
+                prompt=prompt,
+                model=self.model,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                n=self.n,
+            )
+            cnt += 1
+        return response_object
 
     def convert_message_content_to_dict(self, response_object: Dict) -> Dict:
         """
@@ -785,6 +811,12 @@ class Pipeline:
             top_p=self.top_p,
             n=self.n,
         )
+        # None
+        if response_object is None:
+            response_object = self.retry_response(
+                stage="question_enrichment", prompt=prompt, times=3
+            )
+
         try:
             response_object = self.convert_message_content_to_dict(response_object)
         except:
@@ -1023,6 +1055,12 @@ class Pipeline:
             top_p=self.top_p,
             n=self.n,
         )
+
+        if response_object is None:
+            response_object = self.retry_response(
+                stage="candidate_sql_generation", prompt=prompt, times=3
+            )
+
         try:
             response_object = self.convert_message_content_to_dict(response_object)
         except:
@@ -1077,6 +1115,10 @@ class Pipeline:
             top_p=self.top_p,
             n=self.n,
         )
+        if response_object is None:
+            response_object = self.retry_response(
+                stage="sql_refinement", prompt=prompt, times=3
+            )
         try:
             response_object = self.convert_message_content_to_dict(response_object)
         except:
@@ -1124,6 +1166,11 @@ class Pipeline:
             top_p=self.top_p,
             n=self.n,
         )
+        if response_object is None:
+            response_object = self.retry_response(
+                stage="schema_filtering", prompt=prompt, times=3
+            )
+
         try:
             response_object = self.convert_message_content_to_dict(response_object)
         except:

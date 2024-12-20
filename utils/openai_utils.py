@@ -1,13 +1,22 @@
 from openai import OpenAI
 from typing import Dict
 
-def create_response(stage: str, prompt: str, model: str, max_tokens: int, temperature: float, top_p: float,  n: int) -> Dict:
+
+def create_response(
+    stage: str,
+    prompt: str,
+    model: str,
+    max_tokens: int,
+    temperature: float,
+    top_p: float,
+    n: int,
+) -> Dict:
     """
     The functions creates chat response by using chat completion
 
     Arguments:
         stage (str): stage in the pipeline
-        prompt (str): prepared prompt 
+        prompt (str): prepared prompt
         model (str): LLM model used to create chat completion
         max_tokens (int): The maximum number of tokens that can be generated in the chat completion
         temperature (float): Sampling temperature
@@ -28,22 +37,29 @@ def create_response(stage: str, prompt: str, model: str, max_tokens: int, temper
     elif stage == "schema_filtering":
         system_content = "You are an excellent data scientist. You can capture the link between a question and corresponding database and determine the useful database items (tables and columns) perfectly. Your objective is to analyze and understand the essence of the given question, corresponding database schema, database column descriptions, samples and evidence and then select the useful database items such as tables and columns. This database item filtering is essential for eliminating unnecessary information in the database so that corresponding structured query language (SQL) of the question can be generated correctly in later steps."
     else:
-        raise ValueError("Wrong value for stage. It can only take following values: question_enrichment, candidate_sql_generation, sql_refinement or schema_filtering.")
+        raise ValueError(
+            "Wrong value for stage. It can only take following values: question_enrichment, candidate_sql_generation, sql_refinement or schema_filtering."
+        )
 
-    response_object = client.chat.completions.create(
-        model = model,
-        messages=[
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens = max_tokens,
-        response_format = { "type": "json_object" },
-        temperature = temperature,
-        top_p = top_p,
-        n=n,
-        presence_penalty = 0.0,
-        frequency_penalty = 0.0
-    )
+    try:
+        response_object = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"},
+            temperature=temperature,
+            top_p=top_p,
+            n=n,
+            presence_penalty=0.0,
+            frequency_penalty=0.0,
+            timeout=600,
+        )
+    except Exception as e:
+        print(f"Error occured while creating chat completion: {e}")
+        response_object = None
 
     return response_object
 
@@ -59,16 +75,15 @@ def upload_file_to_openai(file_path: str) -> Dict:
     """
     client = OpenAI()
 
-    file_object = client.files.create(
-        file=open(file_path, "rb"),
-        purpose="batch"
-    )
+    file_object = client.files.create(file=open(file_path, "rb"), purpose="batch")
 
     print("File is uploaded to OpenAI")
     return file_object
 
 
-def construct_request_input_object(prompt: str, id: int, model: str, system_message: str) -> Dict:
+def construct_request_input_object(
+    prompt: str, id: int, model: str, system_message: str
+) -> Dict:
     """
     The function creates a request input object for each item in the dataset
 
@@ -84,13 +99,13 @@ def construct_request_input_object(prompt: str, id: int, model: str, system_mess
     request_input_object = {
         "custom_id": f"qe-request-{id}",
         "method": "POST",
-        "url": "/v1/chat/completions", 
+        "url": "/v1/chat/completions",
         "body": {
             "model": model,
             "messages": [
-                {"role": "system", "content": f"{system_message}"}, 
-                {"role": "user", "content": f"{prompt}"}
-                ]
-        }
+                {"role": "system", "content": f"{system_message}"},
+                {"role": "user", "content": f"{prompt}"},
+            ],
+        },
     }
     return request_input_object
